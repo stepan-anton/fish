@@ -37,6 +37,12 @@ function update
         bun update -g --latest
     end
 
+    if type -q npm
+        print_package_manager "Global npm packages"
+        npm -g outdated; or true
+        npm update -g
+    end
+
     # Debian
     if test (uname) != Darwin
         if type -q nala
@@ -77,10 +83,42 @@ function update
         end
     end
 
+    if type -q ghcup
+        print_package_manager GHCup
+        ghcup upgrade -i
+    end
+
     # OpenCode extension manager
     if type -q ocx
         print_package_manager "OpenCode extension manager"
         ocx update -g --all
+    end
+
+    if type -q opencode
+        print_package_manager OpenCode
+        opencode upgrade
+    end
+
+    if type -q dotnet
+        set -l dotnet_tools (dotnet tool list --global 2>/dev/null | string match -v -r '^(Package Id|[-[:space:]]*$)')
+        set -l dotnet_workloads (dotnet workload list 2>/dev/null | string match -v -r '^(Installed Workload Id|[-[:space:]]*$|Use `dotnet workload search`.*)')
+
+        if test (count $dotnet_tools) -gt 0 -o (count $dotnet_workloads) -gt 0
+            print_package_manager ".NET"
+
+            if test (count $dotnet_tools) -gt 0
+                for line in $dotnet_tools
+                    set -l tool_id (string split '\t' -- (string replace -r '\s{2,}' '\t' -- (string trim -- $line)))[1]
+                    if test -n "$tool_id"
+                        dotnet tool update --global $tool_id
+                    end
+                end
+            end
+
+            if test (count $dotnet_workloads) -gt 0
+                dotnet workload update
+            end
+        end
     end
 
     # Rust
@@ -115,17 +153,15 @@ function update
     end
 
     # Fish config
-    if grep -q "url = https://github.com/Adamekka/fish.git" $fish_config/.git/config
+    if test -d "$fish_config/.git"
         print_package_manager "Fish config"
         fish_update
     end
 
     # Fisher
-    if type -q fisher
+    if functions -q fisher
         print_package_manager Fisher
         fisher update
-        cd $fish_config
-        git status -s
-        cd -
+        git -C "$fish_config" status -s
     end
 end

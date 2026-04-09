@@ -7,7 +7,11 @@ end
 
 # pnpm
 set -gx PNPM_HOME "$HOME/.local/share/pnpm"
-set -gx PATH "$PNPM_HOME" $PATH
+if test -d "$PNPM_HOME"
+    if not contains -- "$PNPM_HOME" $PATH
+        set -gx PATH "$PNPM_HOME" $PATH
+    end
+end
 # pnpm end
 
 # Editor
@@ -57,6 +61,7 @@ if test (uname) = Darwin
     set -x JAVA_HOME (/usr/libexec/java_home)
     set -x ANDROID_HOME /opt/homebrew/share/android-sdk
     set -x ANDROID_NDK_ROOT /opt/homebrew/share/android-ndk
+    set -x DOTNET_ROOT "/opt/homebrew/opt/dotnet@8/libexec"
 end
 
 # Godot
@@ -64,10 +69,12 @@ if type -q godot
     alias godot4="godot"
 end
 
-# .NET
-set -x DOTNET_ROOT "/opt/homebrew/opt/dotnet@8/libexec"
+if status is-interactive
+    fish_config theme choose "Dracula Official"
 
-# Set theme
-fish_config theme choose "Dracula Official"
-
-starship init fish | source
+    if type -q starship
+        # Why: resolve the prompt config from the active Fish config dir so cloned or symlinked setups load the same file.
+        set -gx STARSHIP_CONFIG "$__fish_config_dir/starship.toml"
+        starship init fish | source
+    end
+end
